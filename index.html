@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+
+<body>
+  <script>
+    var Module = {
+      onRuntimeInitialized: async () => {
+        const image = await fetch("./RAW.CRW").then(r => r.arrayBuffer());
+        const clampedBuffer = new Uint8Array(image);
+        FS.mkdir("/workspace");
+        FS.chdir("/workspace");
+        FS.writeFile("raw_file_buffer", clampedBuffer);
+        Module.callMain(["-e", "raw_file_buffer"]);
+        const extracted = FS.readFile("raw_file_buffer.thumb.jpg", { encoding: "binary" });
+
+        // Cleanup
+        if (extracted && clampedBuffer) {
+          ["raw_file_buffer", "raw_file_buffer.thumb.jpg"].forEach(item => {
+            FS.unlink(item);
+          })
+        }
+        FS.chdir("/");
+        FS.rmdir("/workspace");
+
+        // Now use `extracted` to create an image Blob to be used in the browser
+        const blob = new Blob([extracted], { type: "image/jpeg" });
+        const imageUrl = URL.createObjectURL(blob);
+        const img = document.createElement("img");
+        img.src = imageUrl;
+        img.width = 600;
+        document.body.appendChild(img);
+      }
+    };
+  </script>
+  <script src="./dcraw.js"></script>
+
+</body>
+
+</html>
